@@ -22,6 +22,11 @@
       let fragmentObject;
       urlInputElement.classList.remove("error");
 
+      if (!urlInputElement.value) {
+        fragmentJSONElement.value = "";
+        return;
+      }
+
       try {
         const url = new URL(urlInputElement.value);
         if (url.hash) {
