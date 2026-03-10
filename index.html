@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Fontra URL Inspector</title>
+  </head>
+  <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
+  <script type="module">
+    "use strict";
+
+    let urlInputElement;
+    let fragmentJSONElement;
+
+    addEventListener("DOMContentLoaded", (event) => {
+      urlInputElement = document.querySelector("#fontra-url");
+      urlInputElement.oninput = (event) => urlChanged(event);
+      fragmentJSONElement = document.querySelector("#fragment-json");
+      fragmentJSONElement.oninput = (event) => fragmentJSONChanged(event);
+    });
+
+    export function urlChanged(event) {
+      let fragmentObject;
+      urlInputElement.classList.remove("error");
+      try {
+        const url = new URL(urlInputElement.value);
+        if (url.hash) {
+          fragmentObject = loadURLFragment(url.hash);
+          if (!fragmentObject) {
+            throw new Error("can't load fragment");
+          }
+        } else {
+          fragmentObject = null;
+        }
+      } catch (error) {
+        urlInputElement.classList.add("error");
+        return;
+      }
+      fragmentJSONElement.value = fragmentObject
+        ? JSON.stringify(fragmentObject, undefined, 2)
+        : "";
+    }
+
+    export function fragmentJSONChanged(event) {
+      let fragmentObject;
+      fragmentJSONElement.classList.remove("error");
+      try {
+        fragmentObject = JSON.parse(fragmentJSONElement.value);
+      } catch (error) {
+        fragmentJSONElement.classList.add("error");
+        return;
+      }
+      const url = new URL(urlInputElement.value);
+      url.hash = fragmentObject ? dumpURLFragment(fragmentObject) : "";
+      urlInputElement.value = url.toString();
+    }
+
+    function base64ToBytes(base64) {
+      const binString = atob(base64);
+      return Uint8Array.from(binString, (m) => m.codePointAt(0));
+    }
+
+    function bytesToBase64(bytes) {
+      const binString = String.fromCodePoint(...bytes);
+      return btoa(binString);
+    }
+
+    function loadURLFragment(fragment) {
+      if (fragment[0] != "#") {
+        throw new Error("assert -- invalid fragment");
+      }
+      try {
+        return JSON.parse(
+          fflate.strFromU8(fflate.unzlibSync(base64ToBytes(fragment.slice(1)))),
+        );
+      } catch {
+        return null;
+      }
+    }
+
+    function dumpURLFragment(obj) {
+      return (
+        "#" +
+        bytesToBase64(fflate.zlibSync(fflate.strToU8(JSON.stringify(obj))))
+      );
+    }
+  </script>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 1em 10em 1em 10em;
+      display: grid;
+      gap: 0.5em;
+    }
+
+    #fontra-url {
+      field-sizing: content;
+    }
+
+    #fragment-json {
+      field-sizing: content;
+    }
+
+    .error {
+      color: red;
+    }
+  </style>
+  <body>
+    <img src="./fontra-icon.svg" width="60" height="60" />
+    <br />
+    <label for="fontra-url">Fontra URL:</label>
+    <textarea id="fontra-url"></textarea>
+    <label for="fragment-json">Fragment JSON:</label>
+    <textarea id="fragment-json"></textarea>
+  </body>
+</html>
