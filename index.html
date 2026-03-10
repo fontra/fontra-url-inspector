@@ -21,6 +21,7 @@
     export function urlChanged(event) {
       let fragmentObject;
       urlInputElement.classList.remove("error");
+
       try {
         const url = new URL(urlInputElement.value);
         if (url.hash) {
@@ -35,6 +36,7 @@
         urlInputElement.classList.add("error");
         return;
       }
+
       fragmentJSONElement.value = fragmentObject
         ? JSON.stringify(fragmentObject, undefined, 2)
         : "";
@@ -43,12 +45,14 @@
     export function fragmentJSONChanged(event) {
       let fragmentObject;
       fragmentJSONElement.classList.remove("error");
+
       try {
         fragmentObject = JSON.parse(fragmentJSONElement.value);
       } catch (error) {
         fragmentJSONElement.classList.add("error");
         return;
       }
+
       const url = new URL(urlInputElement.value);
       url.hash = fragmentObject ? dumpURLFragment(fragmentObject) : "";
       urlInputElement.value = url.toString();
